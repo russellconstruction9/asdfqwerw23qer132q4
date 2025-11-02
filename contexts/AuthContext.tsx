@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabase, getCurrentUser, getSubscription, getUserTokenUsage } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { SubscriptionTier, TokenUsage, UserProfile } from '../types'
 
 interface AuthContextType {
@@ -90,7 +90,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Load subscription
-      const { data: subscription } = await getSubscription(userId)
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+      
       if (subscription && subscription.status === 'active') {
         setSubscriptionTier(subscription.tier)
       } else {
@@ -98,7 +103,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Load token usage
-      const { totalUsed } = await getUserTokenUsage(userId)
+      const startOfMonth = new Date()
+      startOfMonth.setDate(1)
+      startOfMonth.setHours(0, 0, 0, 0)
+      
+      const { data: tokenData } = await supabase
+        .from('token_usage')
+        .select('tokens_used')
+        .eq('user_id', userId)
+        .gte('used_at', startOfMonth.toISOString())
+      
+      const totalUsed = tokenData?.reduce((sum, record) => sum + record.tokens_used, 0) || 0
+      
       setTokenUsage({
         used: totalUsed,
         resetDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString()
@@ -170,7 +186,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshSubscription = async () => {
     if (!user) return
     
-    const { data: subscription } = await getSubscription(user.id)
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+    
     if (subscription && subscription.status === 'active') {
       setSubscriptionTier(subscription.tier)
     } else {
