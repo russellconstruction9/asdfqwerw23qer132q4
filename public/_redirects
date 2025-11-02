@@ -1,0 +1,8 @@
+# Redirects for Single Page Application
+# This ensures all routes are handled by React Router
+
+/*    /index.html   200
+
+# Optional: Add specific redirects for common routes if needed
+# /api/*  https://your-api-domain.com/api/:splat  200
+# /auth/*  https://your-auth-domain.com/auth/:splat  200
